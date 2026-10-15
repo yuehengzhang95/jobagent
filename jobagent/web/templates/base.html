@@ -1,0 +1,76 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>{% block title %}Job Agent{% endblock %}</title>
+<style>
+:root {
+  --bg: #f7f7f5; --panel: #ffffff; --text: #1d1d1b; --muted: #6b6b66; --line: #e4e3df;
+  --accent: #2f5bd3; --accent-ink: #ffffff; --good: #1f7a4d; --ok: #8a6d00; --bad: #b3261e;
+  --chip: #efeee9; --code: #f2f1ed;
+}
+@media (prefers-color-scheme: dark) {
+  :root { --bg: #161615; --panel: #1f1f1d; --text: #ecebe6; --muted: #9b9a93; --line: #33322f;
+          --accent: #7d9cf0; --accent-ink: #10131c; --good: #5cc28f; --ok: #d9b84a; --bad: #f08a80;
+          --chip: #2a2a27; --code: #262624; }
+}
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--bg); color: var(--text);
+       font: 14px/1.5 -apple-system, BlinkMacSystemFont, "Segoe UI", Inter, sans-serif; }
+a { color: var(--accent); text-decoration: none; }
+a:hover { text-decoration: underline; }
+header.top { display: flex; align-items: center; gap: 16px; padding: 12px 24px;
+             border-bottom: 1px solid var(--line); background: var(--panel); position: sticky; top: 0; z-index: 2; }
+header.top h1 { font-size: 16px; margin: 0; }
+main { padding: 20px 24px; max-width: 1400px; margin: 0 auto; }
+.btn { display: inline-block; border: 1px solid var(--line); background: var(--panel); color: var(--text);
+       padding: 6px 12px; border-radius: 6px; font: inherit; cursor: pointer; }
+.btn:hover { border-color: var(--muted); }
+.btn.primary { background: var(--accent); color: var(--accent-ink); border-color: var(--accent); }
+.btn.small { padding: 2px 8px; font-size: 12px; }
+.chip { display: inline-block; background: var(--chip); border-radius: 999px; padding: 1px 8px;
+        font-size: 12px; color: var(--muted); white-space: nowrap; }
+.fit { display: inline-block; min-width: 34px; text-align: center; font-weight: 600; border-radius: 6px;
+       padding: 1px 6px; font-variant-numeric: tabular-nums; }
+.fit.hi { color: var(--good); border: 1px solid var(--good); }
+.fit.mid { color: var(--ok); border: 1px solid var(--ok); }
+.fit.lo { color: var(--bad); border: 1px solid var(--bad); }
+.fit.none { color: var(--muted); border: 1px dashed var(--line); }
+.muted { color: var(--muted); }
+.panel { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 16px; }
+#tasks { font-size: 12px; margin-left: auto; max-width: 560px; }
+#tasks .task { display: flex; gap: 8px; align-items: baseline; }
+#tasks .last { color: var(--muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 380px; }
+pre, code { background: var(--code); border-radius: 6px; }
+pre { padding: 12px; overflow-x: auto; font-size: 12px; white-space: pre-wrap; }
+input, select { font: inherit; padding: 5px 8px; border: 1px solid var(--line); border-radius: 6px;
+                background: var(--panel); color: var(--text); }
+@media (max-width: 720px) { main, header.top { padding-left: 16px; padding-right: 16px; } #tasks { display: none; } }
+</style>
+{% block head %}{% endblock %}
+</head>
+<body>
+<header class="top">
+  <h1><a href="/" style="color:inherit">Job Agent</a></h1>
+  <div id="tasks"></div>
+</header>
+<main>{% block body %}{% endblock %}</main>
+<script>
+async function pollTasks() {
+  try {
+    const r = await fetch('/api/tasks'); const tasks = await r.json();
+    const el = document.getElementById('tasks');
+    el.innerHTML = tasks.filter(t => t.state === 'running' || Date.now() < (window._shownUntil || 0))
+      .slice(0, 3).map(t => `<div class="task"><span class="chip">${t.state}</span>
+        <b>${t.label}</b><span class="last">${(t.log.at(-1) || '').replace(/</g, '&lt;')}</span></div>`).join('');
+    const running = tasks.some(t => t.state === 'running');
+    if (window._wasRunning && !running && window.onTasksIdle) window.onTasksIdle();
+    window._wasRunning = running;
+  } catch (e) {}
+}
+pollTasks(); setInterval(pollTasks, 3000);
+</script>
+{% block scripts %}{% endblock %}
+</body>
+</html>

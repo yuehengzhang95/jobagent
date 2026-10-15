@@ -1,0 +1,124 @@
+\documentclass[letterpaper,11pt]{article}
+
+\usepackage{latexsym}
+\usepackage[empty]{fullpage}
+\usepackage{titlesec}
+\usepackage{enumitem}
+\usepackage[hidelinks]{hyperref}
+\usepackage{fancyhdr}
+\usepackage{tabularx}
+\usepackage{fontawesome5}
+
+\pagestyle{fancy}
+\fancyhf{}
+\renewcommand{\headrulewidth}{0pt}
+\renewcommand{\footrulewidth}{0pt}
+
+\addtolength{\oddsidemargin}{-0.6in}
+\addtolength{\textwidth}{1.2in}
+\addtolength{\topmargin}{-.75in}
+\addtolength{\textheight}{1.5in}
+
+% Section spacing
+\titleformat{\section}{
+\vspace{-8pt}\scshape\raggedright\large\bfseries
+}{}{0em}{}[\titlerule \vspace{-8pt}]
+
+% Bullet
+\newcommand{\resumeItem}[1]{
+\item\small{#1}\vspace{-2pt}
+}
+
+% Subheading (company + title)
+\newcommand{\resumeSubheading}[4]{
+\item
+\begin{tabular*}{1.0\textwidth}[t]{l@{\extracolsep{\fill}}r}
+\textbf{#1} & \textbf{\small #2} \\
+\textit{\small #3} & \textit{\small #4}
+\end{tabular*}\vspace{-9pt}
+}
+
+% Lists
+\newcommand{\resumeSubHeadingListStart}{\begin{itemize}[leftmargin=0in,label={}, topsep=0pt, itemsep=2pt]}
+\newcommand{\resumeSubHeadingListEnd}{\end{itemize}}
+
+\newcommand{\resumeItemListStart}{\begin{itemize}[leftmargin=0.18in, label=\textbullet, topsep=0pt, itemsep=2pt]}
+\newcommand{\resumeItemListEnd}{\end{itemize}\vspace{-2pt}}
+
+% Project header inside a job's bullet list
+\newcommand{\resumeProject}[1]{
+\item[]\hspace{-0.18in}\small\textbf{\textit{#1}}\vspace{-3pt}
+}
+
+\begin{document}
+
+\begin{center}
+{\Huge \scshape Alex Chen} \\ \vspace{2pt}
+\small San Francisco, CA \;|\; \faPhone\ 555-010-0199 \;|\; \faEnvelope\ \href{mailto:alex.chen@example.com}{alex.chen@example.com}
+\end{center}
+
+%------------------------------------------------
+\section{Summary}
+Machine Learning Engineer building search and LLM-powered retrieval systems: learning-to-rank, RAG, and offline evaluation. Shipped two production ranking models at Example Corp. M.S., Computer Science, State University.
+
+%------------------------------------------------
+\section{Experience}
+
+\resumeSubHeadingListStart
+
+\resumeSubheading
+{Example Corp}{San Francisco, CA}
+{Machine Learning Engineer}{Jan 2023 -- Present}
+
+\resumeItemListStart
+
+\resumeProject{Product search ranking}
+
+\resumeItem{\textbf{Learning-to-rank:} Replaced a hand-tuned scoring function with a gradient-boosted ranker trained on 30M click logs, raising NDCG@10 from 0.41 to 0.47 and add-to-cart rate 3.2\%.}
+
+\resumeItem{\textbf{Offline evaluation:} Built a replay-based evaluation harness with bootstrap confidence intervals so ranking changes ship only when the lower bound beats production; cut A/B test count 40\%.}
+
+\resumeProject{Support assistant (RAG)}
+
+\resumeItem{\textbf{Retrieval-augmented answers:} Built a RAG pipeline over 12K help-center articles with hybrid BM25 + embedding retrieval; deflected 18\% of support tickets in the first quarter.}
+
+\resumeItem{\textbf{LLM-as-a-judge:} Designed a rubric-based judge for answer faithfulness, validated against 500 human labels (Cohen's $\kappa$ = 0.78), used to gate every prompt change.}
+
+\resumeItemListEnd
+
+\resumeSubheading
+{Sample Analytics}{Remote}
+{Data Scientist}{Jun 2021 -- Dec 2022}
+
+\resumeItemListStart
+
+\resumeItem{\textbf{Churn prediction:} Trained a churn model on usage events (AUC 0.86) that drove a retention campaign saving \$1.2M in annual revenue.}
+
+\resumeItemListEnd
+
+\resumeSubHeadingListEnd
+
+%------------------------------------------------
+\section{Skills}
+{\small Python, PyTorch, SQL, Spark, learning-to-rank, RAG, LLM evaluation}
+
+%------------------------------------------------
+\section{Education}
+
+\resumeSubHeadingListStart
+
+\resumeSubheading
+{State University}{Springfield, IL}
+{M.S., Computer Science}{May 2021}
+
+\resumeSubHeadingListEnd
+
+%------------------------------------------------
+\section{Publications}
+
+\begin{itemize}[leftmargin=0.15in,label={}, itemsep=1pt]
+\small
+\item \textbf{Example Workshop 2022} --- A Sample Paper Title About Ranking. A.~Chen, B.~Lee.
+\end{itemize}
+
+\end{document}

@@ -1,0 +1,96 @@
+# Companies the Scout checks. Every greenhouse/lever/ashby slug below was verified live on 2026-10-14.
+# ats: greenhouse | lever | ashby (slug) · eightfold (host, domain) · workday (host, tenant, site)
+#      web (Claude + WebSearch; ~$0.10 per company per scout, for sites without a public API)
+# Set `enabled: false` to pause a company. Leave out your current employer.
+
+# Search terms for adapters that search (eightfold, workday, web). Board adapters list everything.
+queries: [machine learning, applied scientist, research scientist, AI engineer, LLM]
+
+companies:
+  # ---------------- big tech
+  - {name: Google, tier: big_tech, ats: web, careers_url: "https://www.google.com/about/careers/applications/jobs/results"}
+  - {name: Meta, tier: big_tech, ats: web, careers_url: "https://www.metacareers.com/jobs"}
+  - {name: Apple, tier: big_tech, ats: web, careers_url: "https://jobs.apple.com"}
+  - name: Microsoft
+    tier: big_tech
+    ats: eightfold
+    host: apply.careers.microsoft.com
+    domain: microsoft.com
+    locations: [New York, Redmond, Mountain View]
+    max_results: 30
+  - name: Netflix
+    tier: big_tech
+    ats: eightfold
+    api: v2
+    host: explore.jobs.netflix.net
+    domain: netflix.com
+    max_results: 60
+  - {name: NVIDIA, tier: big_tech, ats: workday, host: nvidia.wd5.myworkdayjobs.com, tenant: nvidia, site: NVIDIAExternalCareerSite, max_results: 100}
+  - {name: Salesforce, tier: big_tech, ats: workday, host: salesforce.wd12.myworkdayjobs.com, tenant: salesforce, site: External_Career_Site}
+  - {name: Adobe, tier: big_tech, ats: workday, host: adobe.wd5.myworkdayjobs.com, tenant: adobe, site: external_experienced}
+  - {name: Intel, tier: big_tech, ats: workday, host: intel.wd1.myworkdayjobs.com, tenant: intel, site: External}
+  - {name: Databricks, tier: big_tech, ats: greenhouse, slug: databricks}
+  - {name: Snowflake, tier: big_tech, ats: ashby, slug: snowflake}
+  - {name: Stripe, tier: big_tech, ats: greenhouse, slug: stripe}
+  - {name: Airbnb, tier: big_tech, ats: greenhouse, slug: airbnb}
+  - {name: Pinterest, tier: big_tech, ats: greenhouse, slug: pinterest}
+  - {name: Spotify, tier: big_tech, ats: lever, slug: spotify}
+  - {name: Roblox, tier: big_tech, ats: greenhouse, slug: roblox}
+  - {name: Datadog, tier: big_tech, ats: greenhouse, slug: datadog}
+  - {name: MongoDB, tier: big_tech, ats: greenhouse, slug: mongodb}
+  - {name: Block, tier: big_tech, ats: greenhouse, slug: block}
+  - {name: Coinbase, tier: big_tech, ats: greenhouse, slug: coinbase}
+  - {name: Reddit, tier: big_tech, ats: greenhouse, slug: reddit}
+  - {name: Lyft, tier: big_tech, ats: greenhouse, slug: lyft}
+  - {name: Instacart, tier: big_tech, ats: greenhouse, slug: instacart}
+  - {name: Robinhood, tier: big_tech, ats: greenhouse, slug: robinhood}
+  - {name: Figma, tier: big_tech, ats: greenhouse, slug: figma}
+  - {name: Duolingo, tier: big_tech, ats: greenhouse, slug: duolingo}
+  - {name: Jane Street, tier: big_tech, ats: greenhouse, slug: janestreet}
+
+  # ---------------- AI labs
+  - {name: Anthropic, tier: ai_lab, ats: greenhouse, slug: anthropic}
+  - {name: OpenAI, tier: ai_lab, ats: ashby, slug: openai}
+  - {name: xAI, tier: ai_lab, ats: greenhouse, slug: xai}
+  - {name: Cohere, tier: ai_lab, ats: ashby, slug: cohere}
+  - {name: Perplexity, tier: ai_lab, ats: ashby, slug: perplexity}
+  - {name: Scale AI, tier: ai_lab, ats: greenhouse, slug: scaleai}
+  - {name: Together AI, tier: ai_lab, ats: greenhouse, slug: togetherai}
+  - {name: Reka, tier: ai_lab, ats: ashby, slug: reka}
+  - {name: Liquid AI, tier: ai_lab, ats: ashby, slug: liquid-ai}
+  - {name: Poolside, tier: ai_lab, ats: ashby, slug: poolside}
+  - {name: Inflection AI, tier: ai_lab, ats: greenhouse, slug: inflectionai}
+  - {name: Physical Intelligence, tier: ai_lab, ats: ashby, slug: physicalintelligence}
+  - {name: Cerebras, tier: ai_lab, ats: ashby, slug: cerebras}
+
+  # ---------------- mid-stage startups (AI-native or heavy ML)
+  - {name: Harvey, tier: startup, ats: ashby, slug: harvey}
+  - {name: Sierra, tier: startup, ats: ashby, slug: sierra}
+  - {name: Decagon, tier: startup, ats: ashby, slug: decagon}
+  - {name: Writer, tier: startup, ats: ashby, slug: writer}
+  - {name: ElevenLabs, tier: startup, ats: ashby, slug: elevenlabs}
+  - {name: Cursor, tier: startup, ats: ashby, slug: cursor}
+  - {name: Cognition, tier: startup, ats: ashby, slug: cognition}
+  - {name: Replit, tier: startup, ats: ashby, slug: replit}
+  - {name: LangChain, tier: startup, ats: ashby, slug: langchain}
+  - {name: Modal, tier: startup, ats: ashby, slug: modal}
+  - {name: Baseten, tier: startup, ats: ashby, slug: baseten}
+  - {name: Anyscale, tier: startup, ats: ashby, slug: anyscale}
+  - {name: Rogo, tier: startup, ats: ashby, slug: rogo}
+  - {name: Abridge, tier: startup, ats: ashby, slug: abridge}
+  - {name: Snorkel AI, tier: startup, ats: greenhouse, slug: snorkelai}
+  - {name: AssemblyAI, tier: startup, ats: greenhouse, slug: assemblyai}
+  - {name: Cresta, tier: startup, ats: greenhouse, slug: cresta}
+  - {name: Suno, tier: startup, ats: ashby, slug: suno}
+  - {name: Ramp, tier: startup, ats: ashby, slug: ramp}
+  - {name: Plaid, tier: startup, ats: ashby, slug: plaid}
+  - {name: Notion, tier: startup, ats: ashby, slug: notion}
+  - {name: Brex, tier: startup, ats: greenhouse, slug: brex}
+  - {name: Gong, tier: startup, ats: greenhouse, slug: gongio}
+  - {name: Attentive, tier: startup, ats: greenhouse, slug: attentive}
+  - {name: Flatiron Health, tier: startup, ats: greenhouse, slug: flatironhealth}
+  - {name: Oscar Health, tier: startup, ats: greenhouse, slug: oscar}
+  - {name: Labelbox, tier: startup, ats: greenhouse, slug: labelbox}
+  - {name: Typeface, tier: startup, ats: greenhouse, slug: typeface}
+  - {name: Lambda, tier: startup, ats: ashby, slug: lambda}
+  - {name: CoreWeave, tier: startup, ats: greenhouse, slug: coreweave}

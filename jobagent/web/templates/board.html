@@ -1,0 +1,88 @@
+{% extends "base.html" %}
+{% block head %}
+<style>
+.toolbar { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin-bottom: 14px; }
+.tabs { display: flex; gap: 4px; flex-wrap: wrap; margin-bottom: 14px; }
+.tabs a { padding: 6px 12px; border-radius: 6px; color: var(--muted); }
+.tabs a.on { background: var(--panel); color: var(--text); border: 1px solid var(--line); }
+table { width: 100%; border-collapse: collapse; background: var(--panel); border: 1px solid var(--line); border-radius: 10px; overflow: hidden; }
+th, td { text-align: left; padding: 8px 10px; border-bottom: 1px solid var(--line); vertical-align: top; }
+th { font-size: 12px; color: var(--muted); font-weight: 500; }
+tr:last-child td { border-bottom: none; }
+td.title a { font-weight: 500; }
+td.loc { max-width: 280px; color: var(--muted); font-size: 13px; }
+td.act { white-space: nowrap; text-align: right; }
+td.act form { display: inline; }
+.reason { font-size: 12px; color: var(--muted); }
+.wrap { overflow-x: auto; }
+</style>
+{% endblock %}
+{% block body %}
+<div class="toolbar">
+  <form method="post" action="/scout" style="display:flex;gap:8px;align-items:center">
+    <button class="btn primary">Run scout</button>
+    <label class="muted"><input type="checkbox" name="include_web"> include Google / Meta / Apple (web search, ~$0.30)</label>
+    <label class="muted">score top <input type="number" name="score_n" value="{{ score_n }}" min="0" max="300" style="width:64px"></label>
+  </form>
+  {% if unscored %}
+  <form method="post" action="/score" style="display:flex;gap:8px;align-items:center;margin-left:auto">
+    <span class="muted">{{ unscored }} triaged but unscored</span>
+    <input type="number" name="limit" value="30" min="1" max="300" style="width:64px">
+    <button class="btn">Score next</button>
+  </form>
+  {% endif %}
+</div>
+
+<nav class="tabs">
+  {% for key, (label, _) in tabs.items() %}
+  <a href="/?tab={{ key }}" class="{{ 'on' if key == tab else '' }}">{{ label }} <span class="chip">{{ counts[key] }}</span></a>
+  {% endfor %}
+</nav>
+
+<form class="toolbar" method="get">
+  <input type="hidden" name="tab" value="{{ tab }}">
+  <input type="search" name="q" value="{{ q }}" placeholder="Search company, title, location">
+  <select name="tier">
+    <option value="">All tiers</option>
+    {% for t, l in [('big_tech','Big tech'),('ai_lab','AI labs'),('startup','Startups')] %}
+    <option value="{{ t }}" {{ 'selected' if t == tier else '' }}>{{ l }}</option>
+    {% endfor %}
+  </select>
+  <label class="muted">min fit <input type="number" name="min_fit" value="{{ min_fit or '' }}" min="0" max="100" style="width:64px"></label>
+  <button class="btn">Filter</button>
+</form>
+
+<div class="wrap">
+<table>
+  <thead><tr><th>Fit</th><th>Company</th><th>Role</th><th>Location</th><th>Posted</th><th>Status</th><th></th></tr></thead>
+  <tbody>
+  {% for r in rows %}
+  <tr>
+    <td>{% set f = r['fit_score'] %}
+      <span class="fit {{ 'none' if f is none else ('hi' if f >= 75 else ('mid' if f >= 60 else 'lo')) }}">{{ '–' if f is none else f }}</span></td>
+    <td>{{ r['company'] }}<br><span class="chip">{{ (r['tier'] or '').replace('_', ' ') }}</span></td>
+    <td class="title"><a href="/job/{{ r['id'] }}">{{ r['title'] }}</a>
+      {% if r['archetype'] %}<br><span class="chip">{{ r['archetype'].replace('_', ' ') }}</span>{% endif %}
+      {% if r['fit_score'] is none and r['triage_reason'] %}<div class="reason">triage {{ r['triage'] }}: {{ r['triage_reason'] }}</div>{% endif %}</td>
+    <td class="loc">{{ r['location'] }}</td>
+    <td class="muted">{{ r['posted_at'] or '' }}</td>
+    <td><span class="chip">{{ r['status'].replace('_', ' ') }}</span></td>
+    <td class="act">
+      {% if r['status'] in ('scored', 'discovered', 'filtered', 'skipped') %}
+      <form method="post" action="/job/{{ r['id'] }}/tailor"><button class="btn small primary">Tailor resume</button></form>
+      {% endif %}
+      {% if r['status'] != 'skipped' %}
+      <form method="post" action="/job/{{ r['id'] }}/status">
+        <input type="hidden" name="status" value="skipped"><input type="hidden" name="next" value="/?tab={{ tab }}">
+        <button class="btn small">Skip</button></form>
+      {% endif %}
+    </td>
+  </tr>
+  {% else %}
+  <tr><td colspan="7" class="muted" style="padding:24px;text-align:center">No jobs here yet. Run the scout.</td></tr>
+  {% endfor %}
+  </tbody>
+</table>
+</div>
+{% endblock %}
+{% block scripts %}<script>window.onTasksIdle = () => location.reload();</script>{% endblock %}

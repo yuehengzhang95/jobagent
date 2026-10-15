@@ -1,0 +1,42 @@
+# Fixed answers used by the Submitter. The LLM never invents these.
+contact:
+  first_name: Alex
+  preferred_name: ""                 # optional; used for the PDF name if set
+  last_name: Chen
+  email: alex.chen@example.com
+  phone: "555-010-0199"
+  location: San Francisco, CA
+  location_search: San Francisco     # typed into location autocompletes
+  location_pick: San Francisco, California  # first suggestion containing this is chosen
+  country: United States
+
+work_authorization:
+  authorized_to_work_in_us: true
+  requires_sponsorship_now_or_future: false
+  status: US citizen                 # e.g. US citizen / US permanent resident (green card) / H-1B
+
+compensation:
+  target_total_comp_usd: 250000
+  minimum_base_salary_usd: 180000
+  # Text used when a form asks for "desired salary" as free text:
+  free_text: "Targeting ~$250K total compensation; flexible on the base/equity mix."
+
+employment:
+  current_employer: Example Corp
+  current_title: Machine Learning Engineer
+  bound_by_noncompete_or_restrictive_agreement: false
+
+availability:
+  willing_to_relocate: true
+  remote_preference: open to hybrid or onsite
+
+education:
+  highest_degree: M.S. Computer Science
+  school: State University
+
+# EEO questions: "Decline to self-identify" unless you set these.
+eeo:
+  gender: decline
+  race_ethnicity: decline
+  veteran_status: decline
+  disability_status: decline

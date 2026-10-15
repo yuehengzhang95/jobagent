@@ -1,0 +1,139 @@
+# Search + tailoring preferences. Edit freely.
+name: Alex Chen
+target_roles:
+  - Machine Learning Engineer
+  - Applied Scientist
+  - Research Scientist
+  - AI Engineer
+  - LLM / NLP Engineer
+seniority:
+  include: [mid-level, senior]
+  exclude: [staff, principal, director, manager, intern, new grad, university grad]
+locations: [New York City, Seattle area, anywhere in California, Remote (US)]
+company_tiers: [big tech, AI labs, mid-stage startups]
+
+# Scout prefilter (regex alternatives, case-insensitive, word-bounded). Cheap and deterministic;
+# everything that passes gets an LLM fit score.
+scout:
+  title_include:
+    - machine learning
+    - ML
+    - applied scientist
+    - research scientist
+    - research engineer
+    - AI engineer
+    - applied AI
+    - AI research\w*
+    - LLMs?
+    - NLP
+    - deep learning
+    - member of technical staff
+    - software engineer.{0,25}(AI|ML|machine learning)
+    - evals?
+    - evaluations?
+    - post-training
+  title_exclude:
+    - staff
+    - principal
+    - distinguished
+    - fellow
+    - director
+    - head
+    - VP
+    - manager
+    - intern
+    - internship
+    - new grad
+    - university
+    - graduate
+    - residen(t|cy)
+    - PhD
+    - architect
+    - advocate
+    - sales
+    - solutions
+    - recruit\w*
+    - product manager
+    - program manager
+    - partner
+    - forward deployed
+    - delivery
+    - front[- ]?end
+    - iOS
+    - android
+    - (scientist|engineer) (6|7)   # Netflix-style levels above senior
+  locations:
+    - New York
+    - NYC
+    - NY
+    - Brooklyn
+    - Manhattan
+    - Seattle
+    - Bellevue
+    - Redmond
+    - Kirkland
+    # California: the state name or a ', CA' suffix catches most postings; cities cover the rest
+    - California
+    - ',\s*CA'
+    - Bay Area
+    - San Francisco
+    - SF
+    - South San Francisco
+    - Oakland
+    - Berkeley
+    - Emeryville
+    - San Mateo
+    - Foster City
+    - Redwood City
+    - Burlingame
+    - San Jose
+    - Santa Clara
+    - Sunnyvale
+    - Mountain View
+    - Palo Alto
+    - Cupertino
+    - Menlo Park
+    - Milpitas
+    - Los Angeles
+    - Santa Monica
+    - Culver City
+    - Playa Vista
+    - Pasadena
+    - Irvine
+    - San Diego
+    - Sacramento
+  # 'Remote' counts only when the posting is US-based or remote-only (handled in code)
+  score_per_run: 60   # max new jobs the Matcher scores per scout run (~$0.04 each)
+
+# Skills the Tailor may list. Anything outside this list fails verification.
+# List only skills your resume or artifacts can back up.
+allowed_skills:
+  - Python
+  - PyTorch
+  - SQL
+  - Spark
+  - learning-to-rank
+  - RAG
+  - LLM evaluation
+  - LLM-as-a-judge
+  - A/B testing
+
+# Publications the Tailor may add ONLY for research-oriented roles (title says research,
+# archetype is research, or the posting asks for publications). `latex` is inserted verbatim
+# at the top of the Publications list; `text` is the claim the summary may cite.
+optional_publications: []
+# Example:
+#  - id: pub.mypaper
+#    text: "Under review — My Paper Title. A. Chen, B. Lee."
+#    latex: "\\textbf{Under review} --- My Paper Title. \\textbf{A.~Chen}, B.~Lee."
+
+# Artifacts the Librarian ignores (duplicates / translations).
+librarian_skip: []
+
+models:
+  matcher: sonnet
+  librarian: opus
+  tailor: opus
+  verifier: opus
+
+max_tailor_rounds: 3

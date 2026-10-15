@@ -1,0 +1,200 @@
+{% extends "base.html" %}
+{% block title %}{{ job['company'] }} · {{ job['title'] }}{% endblock %}
+{% block head %}
+<style>
+.head { display: flex; flex-wrap: wrap; gap: 12px; align-items: flex-start; margin-bottom: 16px; }
+.head h2 { margin: 0 0 4px; font-size: 20px; }
+.actions { margin-left: auto; display: flex; gap: 8px; flex-wrap: wrap; }
+.actions form { display: inline; }
+.grid { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 16px; }
+@media (max-width: 1000px) { .grid { grid-template-columns: 1fr; } }
+.panel h3 { margin: 0 0 8px; font-size: 14px; }
+.panel ul { margin: 4px 0 12px; padding-left: 18px; }
+iframe.pdf { width: 100%; height: 1050px; border: 1px solid var(--line); border-radius: 8px; background: white; }
+.review h2 { font-size: 15px; margin: 18px 0 6px; }
+.review pre { max-height: 520px; }
+details summary { cursor: pointer; color: var(--muted); }
+.jd { white-space: pre-wrap; font-size: 13px; max-height: 600px; overflow: auto; }
+.banner { padding: 10px 14px; border-radius: 8px; margin-bottom: 16px; border: 1px solid var(--line); background: var(--panel); }
+.banner.bad { border-color: var(--bad); color: var(--bad); }
+#application { margin-bottom: 16px; }
+.qa { width: 100%; border-collapse: collapse; }
+.qa td { padding: 8px 6px; border-top: 1px solid var(--line); vertical-align: top; }
+.qa td.q { width: 34%; font-size: 13px; }
+.qa td.q .desc { color: var(--muted); font-size: 12px; margin-top: 4px; max-height: 80px; overflow: auto; }
+.qa input[type=text], .qa textarea, .qa select { width: 100%; box-sizing: border-box; }
+.qa textarea { min-height: 120px; }
+.qa tr.block td.q { border-left: 3px solid var(--bad); }
+.src { font-size: 11px; padding: 1px 6px; border-radius: 4px; border: 1px solid var(--line); color: var(--muted); white-space: nowrap; }
+.src.needs_input, .src.consent, .src.draft { color: var(--bad); border-color: var(--bad); }
+.note { font-size: 12px; color: var(--muted); margin-top: 4px; }
+.shot { max-width: 100%; border: 1px solid var(--line); border-radius: 8px; max-height: 900px; overflow: auto; display: block; }
+</style>
+{% endblock %}
+{% block body %}
+<div class="head">
+  <div>
+    <h2>{{ job['title'] }}</h2>
+    <div class="muted">{{ job['company'] }} · {{ job['location'] }} {% if job['posted_at'] %}· posted {{ job['posted_at'] }}{% endif %}</div>
+    <div style="margin-top:6px">
+      {% set f = job['fit_score'] %}
+      <span class="fit {{ 'none' if f is none else ('hi' if f >= 75 else ('mid' if f >= 60 else 'lo')) }}">{{ '–' if f is none else f }}</span>
+      <span class="chip">{{ job['status'].replace('_', ' ') }}</span>
+      {% if job['archetype'] %}<span class="chip">{{ job['archetype'].replace('_', ' ') }}</span>{% endif %}
+      <a href="{{ job['url'] }}" target="_blank" rel="noopener">Open posting ↗</a>
+    </div>
+  </div>
+  <div class="actions">
+    {% if job['status'] != 'tailoring' %}
+    <form method="post" action="/job/{{ job['id'] }}/tailor">
+      <button class="btn primary">{{ 'Re-tailor' if job['run_dir'] else 'Tailor resume' }}</button></form>
+    {% endif %}
+    {% if job['fit_score'] is none %}
+    <form method="post" action="/job/{{ job['id'] }}/score"><button class="btn">Score fit</button></form>
+    {% endif %}
+    {% if job['status'] in ('ready', 'needs_review') %}
+    <form method="post" action="/job/{{ job['id'] }}/status"><input type="hidden" name="status" value="applied">
+      <button class="btn">Mark applied</button></form>
+    {% endif %}
+    {% if job['status'] != 'skipped' %}
+    <form method="post" action="/job/{{ job['id'] }}/status"><input type="hidden" name="status" value="skipped">
+      <button class="btn">Skip</button></form>
+    {% else %}
+    <form method="post" action="/job/{{ job['id'] }}/status"><input type="hidden" name="status" value="scored">
+      <button class="btn">Unskip</button></form>
+    {% endif %}
+  </div>
+</div>
+
+{% if job['status'] == 'tailoring' %}
+<div class="banner">Tailoring in progress (usually 1–3 minutes). This page refreshes when it finishes.</div>
+{% elif job['status'] == 'error' %}
+<div class="banner bad">Last run failed: {{ job['error'] }}</div>
+{% elif job['status'] == 'needs_review' %}
+<div class="banner bad">The Verifier could not clear every issue in 3 rounds. Read “Unresolved errors” below before using this resume.</div>
+{% endif %}
+
+{% if run and run['pdf'] and can_apply %}
+<div class="panel" id="application">
+  {% set st = plan.session.get('state') if plan else None %}
+  <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+    <h3 style="margin:0">Application</h3>
+    {% if plan %}<span class="muted">prepared {{ plan.created[:16].replace('T', ' ') }} · {{ plan.blocking|length }} need you</span>{% endif %}
+    <div style="margin-left:auto;display:flex;gap:8px">
+      {% if not session_open %}
+      <form method="post" action="/job/{{ job['id'] }}/apply/prepare"><button class="btn">{{ 'Re-prepare' if plan else 'Prepare application' }}</button></form>
+      {% endif %}
+      {% if plan and not session_open and job['status'] != 'applied' %}
+      <form method="post" action="/job/{{ job['id'] }}/apply/start">
+        <button class="btn primary" {{ 'disabled' if plan.blocking else '' }} title="{{ 'Answer the red rows first' if plan.blocking else '' }}">Open browser &amp; fill form</button></form>
+      {% endif %}
+    </div>
+  </div>
+
+  {% if st %}
+  <div class="banner {{ 'bad' if st in ('needs_manual','failed') else '' }}" style="margin-top:12px">
+    {% if st == 'filling' %}Filling the form in the browser window…
+    {% elif st == 'awaiting_approval' %}The form is filled. Check the screenshot (or the browser window), then submit.
+    {% elif st == 'submitting' %}Submitting…
+    {% elif st == 'waiting_for_code' %}Waiting for the security code email (up to 3 minutes)…
+    {% elif st == 'submitted' %}Submitted {{ plan.session.get('submitted_at', '')[:16].replace('T', ' ') }}{{ ' (by hand)' if plan.session.get('manual') else '' }}.
+    {% elif st == 'needs_manual' %}Needs you in the browser window.
+    {% elif st == 'failed' %}The browser session failed.
+    {% else %}Session {{ st.replace('_', ' ') }}.{% endif %}
+    {% for pr in plan.session.get('problems', []) %}<div>• {{ pr }}</div>{% endfor %}
+    <div style="display:flex;gap:8px;margin-top:8px">
+      {% if st == 'awaiting_approval' %}
+      <form method="post" action="/job/{{ job['id'] }}/apply/submit"><button class="btn primary">Submit application</button></form>
+      <form method="post" action="/job/{{ job['id'] }}/apply/cancel"><button class="btn">Cancel</button></form>
+      {% endif %}
+      {% if st in ('awaiting_approval', 'needs_manual', 'failed', 'closed') %}
+      <form method="post" action="/job/{{ job['id'] }}/apply/done"><button class="btn">I submitted it myself</button></form>
+      {% endif %}
+    </div>
+  </div>
+  {% if plan.session.get('screenshot') %}
+  <details {{ 'open' if st == 'awaiting_approval' else '' }} style="margin-bottom:12px"><summary>Screenshot</summary>
+    <img class="shot" src="/runs/{{ run['dir'] }}/{{ plan.session['screenshot'] }}?t={{ plan.session.get('updated') }}"></details>
+  {% endif %}
+  {% endif %}
+
+  {% if plan %}
+  <form method="post" action="/job/{{ job['id'] }}/apply/save">
+  <table class="qa">
+    {% for f in plan.fields if f.source != 'eeo' or f.required %}
+    <tr class="{{ 'block' if not f.done else '' }}">
+      <td class="q">{{ f.label }}{% if f.required %} <b>*</b>{% endif %}
+        <div><span class="src {{ f.source }}">{{ f.source.replace('_', ' ') }}</span></div>
+        {% if f.description %}<div class="desc">{{ f.description }}</div>{% endif %}</td>
+      <td>
+        {% if f.kind == 'file' %}<span class="muted">{{ f.answer.split('/')[-1] or 'none' }}</span>
+        {% elif f.kind == 'textarea' %}<textarea name="a__{{ f.id }}">{{ f.answer }}</textarea>
+        {% elif f.options %}
+          <select name="a__{{ f.id }}" {{ 'multiple' if f.kind == 'multiselect' else '' }}>
+            <option value="">—</option>
+            {% set chosen = f.answer.split(' | ') %}
+            {% for o in f.options %}<option {{ 'selected' if o in chosen else '' }}>{{ o }}</option>{% endfor %}
+          </select>
+        {% elif f.kind == 'date' %}<input type="date" name="a__{{ f.id }}" value="{{ f.answer if f.answer[:4].isdigit() else '' }}">
+        {% else %}<input type="text" name="a__{{ f.id }}" value="{{ f.answer }}">{% endif %}
+        {% if f.note %}<div class="note">{{ f.note }}</div>{% endif %}
+        <div class="note">
+          {% if f.needs_approval %}<label><input type="checkbox" name="ok__{{ f.id }}" {{ 'checked' if f.approved else '' }}> I approve this answer</label>{% endif %}
+          {% if f.kind != 'file' and f.source in ('needs_input', 'skip', 'consent', 'you', 'learned') %}
+          <label style="margin-left:10px"><input type="checkbox" name="rem__{{ f.id }}"> remember for other applications</label>{% endif %}
+        </div>
+      </td>
+    </tr>
+    {% endfor %}
+  </table>
+  <p class="muted" style="font-size:12px">Optional demographic questions are answered “decline to self-identify” (config/answers.yaml) and hidden here.</p>
+  <button class="btn primary">Save answers</button>
+  </form>
+  {% endif %}
+</div>
+{% endif %}
+
+<div class="grid">
+  <div>
+    {% if a %}
+    <div class="panel" style="margin-bottom:16px">
+      <h3>Why it fits</h3>
+      <p style="margin-top:0">{{ a['fit_rationale'] }}</p>
+      <h3>Must-haves</h3><ul>{% for x in a['must_have'] %}<li>{{ x }}</li>{% endfor %}</ul>
+      {% if a['gaps'] %}<h3>Gaps</h3><ul>{% for x in a['gaps'] %}<li>{{ x }}</li>{% endfor %}</ul>{% endif %}
+      {% if a['red_flags'] %}<h3>Red flags</h3><ul>{% for x in a['red_flags'] %}<li>{{ x }}</li>{% endfor %}</ul>{% endif %}
+    </div>
+    {% endif %}
+    {% if run %}
+    <div class="panel review" style="margin-bottom:16px">{{ run['review_html'] | safe }}</div>
+    {% endif %}
+    <div class="panel">
+      <details {{ '' if run else 'open' }}><summary>Job description</summary>
+        <div class="jd">{{ job['description'] or 'Not fetched yet; it is fetched when you score or tailor.' }}</div>
+      </details>
+    </div>
+  </div>
+  <div>
+    {% if run and run['pdf'] %}
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+      <b>Tailored resume</b>
+      <a class="btn small" href="{{ run['pdf'] }}" download>Download PDF</a>
+    </div>
+    <iframe class="pdf" src="{{ run['pdf'] }}#view=FitH"></iframe>
+    {% else %}
+    <div class="panel muted">No tailored resume yet.</div>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}
+{% block scripts %}
+<script>window.onTasksIdle = () => location.reload();</script>
+{% if job['status'] in ('tailoring', 'applying', 'submitting') %}
+<script>
+setInterval(async () => {
+  const r = await fetch('/api/job/{{ job["id"] }}'); const j = await r.json();
+  if (j.status !== '{{ job["status"] }}') location.reload();
+}, 4000);
+</script>
+{% endif %}
+{% endblock %}

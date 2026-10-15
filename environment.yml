@@ -1,0 +1,9 @@
+# conda env create -p ./.env -f environment.yml
+channels:
+  - conda-forge
+dependencies:
+  - python=3.12
+  - tectonic          # LaTeX engine that compiles the tailored resumes
+  - pip
+  - pip:
+      - -r requirements.txt

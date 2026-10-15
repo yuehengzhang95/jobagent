@@ -1,0 +1,14 @@
+# Personal data: never commit
+/artifacts/
+/config/profile.yaml
+/config/answers.yaml
+/config/learned_answers.yaml
+/data/
+/runs/
+
+# Environments and caches
+/.env/
+.venv/
+__pycache__/
+*.pyc
+.DS_Store
