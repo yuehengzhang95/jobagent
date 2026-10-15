@@ -59,7 +59,20 @@ your own material (steps 1–4). The company list (step 5) is easiest to set up 
 
 ### 1. Your resume: `artifacts/main.tex`
 
-The resume must use the macros from the example (based on Jake's resume template):
+**Have a PDF or Word resume? Convert it:**
+
+```bash
+./.env/bin/python -m jobagent import-resume ~/Documents/my_resume.pdf   # or .docx / .md / .txt
+```
+
+Claude restructures it into the LaTeX format below, copying wording, numbers and dates as
+they are. Code then flags any number or bullet that doesn't appear in your original, compiles
+the result and tells you whether it fits on one page. Open the preview PDF it prints and
+compare it with your original. If `artifacts/main.tex` already holds a resume, the result is
+written to `artifacts/main.imported.tex` instead of overwriting it. Scanned (image-only) PDFs
+have no text to read; use the Word file instead. Cost: ~$0.20.
+
+**Or write it by hand.** The resume must use the macros from the example (based on Jake's resume template):
 
 - Sections named `Summary`, `Experience`, `Skills`, plus any others (Education, Publications…),
   which are kept as they are.
@@ -152,6 +165,7 @@ The inbox is opened read-only, and only messages that arrive after the submit cl
 
 ```bash
 python -m jobagent init                      # copy the examples into artifacts/ and config/
+python -m jobagent import-resume <file>      # PDF / Word / text resume -> artifacts/main.tex
 python -m jobagent librarian                 # rebuild data/claims.yaml
 python -m jobagent scout [--web] [--score N] # pull boards, triage, score top N
 python -m jobagent score [--limit N]         # score more triaged jobs
@@ -164,6 +178,7 @@ python -m jobagent serve [--port 8765]       # web UI
 
 | Step | Cost |
 |---|---|
+| Resume import (once) | ~$0.20 |
 | Librarian (once) | ~$1 for a dozen documents |
 | Triage | ~$0.25 per 250 titles |
 | Fit score | ~$0.04 per job |

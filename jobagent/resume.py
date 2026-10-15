@@ -130,7 +130,10 @@ def parse_base(tex_path: Path = paths.BASE_TEX) -> Resume:
         kind = m.group(1)
         if kind == "Subheading":
             (org, loc, title, dates), _ = _read_args(body, m.end(), 4)
-            roles.append(Role(id=_slug(org), org=org, location=loc, title=title,
+            rid = _slug(org)
+            if any(r.id == rid for r in roles):      # two roles at the same company
+                rid += str(sum(r.id.startswith(rid) for r in roles) + 1)
+            roles.append(Role(id=rid, org=org, location=loc, title=title,
                               dates=tex_to_text(dates), projects=[]))
         elif kind == "Project":
             (title,), _ = _read_args(body, m.end(), 1)
@@ -189,10 +192,11 @@ class RenderResult(BaseModel):
     last_page_fill: float  # fraction of the last page's text height used
 
 
-def render(resume: Resume, base: Resume, out_dir: Path, stem: str = "resume") -> RenderResult:
+def render(resume: Resume, base: Resume, out_dir: Path, stem: str = "resume",
+           template_path: Path = paths.BASE_TEX) -> RenderResult:
     out_dir.mkdir(parents=True, exist_ok=True)
     tex_path = out_dir / f"{stem}.tex"
-    tex_path.write_text(to_tex(resume, base))
+    tex_path.write_text(to_tex(resume, base, template_path))
     tectonic = str(paths.TECTONIC) if paths.TECTONIC.exists() else shutil.which("tectonic")
     if not tectonic:
         raise RuntimeError("tectonic (LaTeX engine) not found. Create the environment with "

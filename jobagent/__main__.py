@@ -1,6 +1,7 @@
 """CLI.
 
   python -m jobagent init                      # copy the examples into artifacts/ and config/
+  python -m jobagent import-resume <file>      # PDF/Word resume -> artifacts/main.tex
   python -m jobagent librarian                 # (re)build data/claims.yaml
   python -m jobagent analyze  --jd <file|url|->
   python -m jobagent tailor   --jd <file|url|-> [--out runs/foo]
@@ -37,6 +38,9 @@ def main() -> None:
     ap = argparse.ArgumentParser(prog="jobagent")
     sub = ap.add_subparsers(dest="cmd", required=True)
     sub.add_parser("init")
+    im = sub.add_parser("import-resume", help="convert a PDF / Word / text resume into artifacts/main.tex")
+    im.add_argument("file")
+    im.add_argument("--out", help="where to write the .tex (default: artifacts/main.tex)")
     sub.add_parser("librarian")
     a = sub.add_parser("analyze")
     a.add_argument("--jd", required=True)
@@ -67,8 +71,24 @@ def main() -> None:
             else:
                 shutil.copy(src, dst)
                 print(f"create {dst.relative_to(paths.ROOT)}")
-        print("Next: replace artifacts/main.tex and artifacts/profile.md with yours, edit config/*.yaml, "
+        print("Next: put your resume in artifacts/main.tex (from a PDF or Word file: "
+              "`python -m jobagent import-resume <file>`), replace artifacts/profile.md, edit config/*.yaml, "
               "then run `python -m jobagent librarian`.")
+    elif args.cmd == "import-resume":
+        from . import importer
+        r = importer.run(Path(args.file), Path(args.out) if args.out else None)
+        print(f"wrote {r['tex']}: {r['roles']} roles, {r['bullets']} bullets, {r['pages']} page(s), "
+              f"last page {r['fill']:.0%} full")
+        print(f"preview: {r['pdf']}")
+        if r["tex"].name == "main.imported.tex":
+            print("artifacts/main.tex already holds a resume, so it was not overwritten. "
+                  "Review main.imported.tex and rename it when you're happy.")
+        if r["pages"] > 1:
+            print("It runs over one page. Shorten it (the Tailor keeps resumes to one page).")
+        for p in r["problems"]:
+            print(f"! check: {p}")
+        print("Next: read the preview against your original, fix anything in the .tex, then run "
+              "`python -m jobagent librarian`.")
     elif args.cmd == "librarian":
         from .agents import librarian
         cs = librarian.build()
