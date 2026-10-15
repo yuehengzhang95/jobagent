@@ -23,6 +23,11 @@ a:hover { text-decoration: underline; }
 header.top { display: flex; align-items: center; gap: 16px; padding: 12px 24px;
              border-bottom: 1px solid var(--line); background: var(--panel); position: sticky; top: 0; z-index: 2; }
 header.top h1 { font-size: 16px; margin: 0; }
+.nav { display: flex; gap: 14px; }
+.nav a { color: var(--muted); }
+.nav a:hover { color: var(--text); text-decoration: none; }
+textarea { font: inherit; padding: 6px 8px; border: 1px solid var(--line); border-radius: 6px;
+           background: var(--panel); color: var(--text); }
 main { padding: 20px 24px; max-width: 1400px; margin: 0 auto; }
 .btn { display: inline-block; border: 1px solid var(--line); background: var(--panel); color: var(--text);
        padding: 6px 12px; border-radius: 6px; font: inherit; cursor: pointer; }
@@ -53,6 +58,7 @@ input, select { font: inherit; padding: 5px 8px; border: 1px solid var(--line); 
 <body>
 <header class="top">
   <h1><a href="/" style="color:inherit">Job Agent</a></h1>
+  <nav class="nav"><a href="/">Jobs</a><a href="/companies">Companies</a><a href="/setup">Preferences</a></nav>
   <div id="tasks"></div>
 </header>
 <main>{% block body %}{% endblock %}</main>

@@ -18,10 +18,16 @@ td.act form { display: inline; }
 </style>
 {% endblock %}
 {% block body %}
+{% if needs_setup %}
+<div class="panel" style="margin-bottom:14px;display:flex;gap:12px;align-items:center;flex-wrap:wrap">
+  <div><b>Before your first search:</b> answer a few questions so the company list fits what you want.</div>
+  <a class="btn primary" href="/setup?first=1" style="margin-left:auto">Set preferences</a>
+</div>
+{% endif %}
 <div class="toolbar">
   <form method="post" action="/scout" style="display:flex;gap:8px;align-items:center">
     <button class="btn primary">Run scout</button>
-    <label class="muted"><input type="checkbox" name="include_web"> include Google / Meta / Apple (web search, ~$0.30)</label>
+    <label class="muted"><input type="checkbox" name="include_web"> include companies without a public job board (web search, ~$0.10 each)</label>
     <label class="muted">score top <input type="number" name="score_n" value="{{ score_n }}" min="0" max="300" style="width:64px"></label>
   </form>
   {% if unscored %}
@@ -44,8 +50,8 @@ td.act form { display: inline; }
   <input type="search" name="q" value="{{ q }}" placeholder="Search company, title, location">
   <select name="tier">
     <option value="">All tiers</option>
-    {% for t, l in [('big_tech','Big tech'),('ai_lab','AI labs'),('startup','Startups')] %}
-    <option value="{{ t }}" {{ 'selected' if t == tier else '' }}>{{ l }}</option>
+    {% for t in tiers %}
+    <option value="{{ t }}" {{ 'selected' if t == tier else '' }}>{{ t.replace('_', ' ') }}</option>
     {% endfor %}
   </select>
   <label class="muted">min fit <input type="number" name="min_fit" value="{{ min_fit or '' }}" min="0" max="100" style="width:64px"></label>

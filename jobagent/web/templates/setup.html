@@ -1,0 +1,88 @@
+{% extends "base.html" %}
+{% block title %}Preferences · Job Agent{% endblock %}
+{% block head %}
+<style>
+.wrap { max-width: 860px; }
+.q { margin-bottom: 22px; }
+.q > label, .q > .label { display: block; font-weight: 600; margin-bottom: 4px; }
+.q .hint { color: var(--muted); font-size: 13px; margin: 0 0 8px; }
+.opts { display: flex; flex-wrap: wrap; gap: 6px 10px; }
+.opts label { display: inline-flex; gap: 6px; align-items: center; border: 1px solid var(--line);
+              border-radius: 999px; padding: 4px 12px; background: var(--panel); cursor: pointer; }
+.opts input { margin: 0; }
+.q input[type=text], .q textarea { width: 100%; }
+.q textarea { min-height: 64px; }
+.actions { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
+</style>
+{% endblock %}
+{% block body %}
+<div class="wrap">
+  <h2 style="margin-top:0">{{ 'Before your first search' if first else 'Search preferences' }}</h2>
+  <p class="muted">Your answers decide which companies the scout checks. Claude suggests companies to add and
+    remove, finds each one's job board, and shows you the list. Nothing changes until you approve it.</p>
+
+  <form method="post" action="/setup" class="panel">
+    <div class="q">
+      <label for="roles">What roles are you looking for?</label>
+      <p class="hint">Comma-separated, e.g. Machine Learning Engineer, Data Scientist, Backend Engineer.</p>
+      <input type="text" id="roles" name="roles" value="{{ v.roles }}" required>
+    </div>
+
+    {% for key, title, hint in [
+      ('seniority', 'Which levels?', ''),
+      ('locations', 'Where do you want to work?', 'Pick all that apply.'),
+      ('company_types', 'What kinds of companies?', 'Pick all that apply.'),
+      ('stages', 'Company stage', 'Leave empty for any stage.')] %}
+    <div class="q">
+      <div class="label">{{ title }}</div>
+      {% if hint %}<p class="hint">{{ hint }}</p>{% endif %}
+      <div class="opts">
+        {% for o in choices[key] %}
+        <label><input type="checkbox" name="{{ key }}" value="{{ o }}" {{ 'checked' if o in v[key] else '' }}> {{ o }}</label>
+        {% endfor %}
+      </div>
+      {% if key == 'locations' %}<input type="text" name="other_locations" value="{{ v.other_locations }}" placeholder="Other places (e.g. Toronto, London)" style="margin-top:8px">{% endif %}
+      {% if key == 'company_types' %}<input type="text" name="other_types" value="{{ v.other_types }}" placeholder="Other kinds (e.g. climate tech, gaming)" style="margin-top:8px">{% endif %}
+    </div>
+    {% endfor %}
+
+    <div class="q">
+      <label for="industries">Domains or problems you care about</label>
+      <p class="hint">Optional, e.g. LLM evaluation, search, payments, drug discovery.</p>
+      <input type="text" id="industries" name="industries" value="{{ v.industries }}">
+    </div>
+    <div class="q">
+      <label for="include">Companies you definitely want on the list</label>
+      <input type="text" id="include" name="include" value="{{ v.include }}" placeholder="Comma-separated">
+    </div>
+    <div class="q">
+      <label for="exclude">Companies to leave out</label>
+      <p class="hint">Include your current employer.</p>
+      <input type="text" id="exclude" name="exclude" value="{{ v.exclude }}" placeholder="Comma-separated">
+    </div>
+    <div class="q">
+      <div class="label">How many companies should the list have?</div>
+      <div class="opts">
+        {% for o in choices.list_size %}
+        <label><input type="radio" name="list_size" value="{{ o }}" {{ 'checked' if o == v.list_size else '' }}> about {{ o }}</label>
+        {% endfor %}
+      </div>
+    </div>
+    <div class="q">
+      <label for="notes">Anything else?</label>
+      <textarea id="notes" name="notes" placeholder="e.g. no defense work, prefer teams that publish">{{ v.notes }}</textarea>
+    </div>
+
+    <div class="actions">
+      <button class="btn primary">Suggest companies</button>
+      <span class="muted">Takes about a minute (~$0.20).</span>
+    </div>
+  </form>
+
+  {% if first and has_list %}
+  <form method="post" action="/setup/skip" style="margin-top:12px">
+    <button class="btn">Skip and use the current company list</button>
+  </form>
+  {% endif %}
+</div>
+{% endblock %}

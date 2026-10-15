@@ -1,5 +1,7 @@
-# Companies the Scout checks. Every greenhouse/lever/ashby slug below was verified live on 2026-10-14.
+# Companies the Scout checks. This default list targets ML/AI roles; the Preferences page in the
+# web UI rewrites it for you. Slugs below were verified live on 2026-10-14.
 # ats: greenhouse | lever | ashby (slug) · eightfold (host, domain) · workday (host, tenant, site)
+#      google · meta (their careers sites, no setup needed)
 #      web (Claude + WebSearch; ~$0.10 per company per scout, for sites without a public API)
 # Set `enabled: false` to pause a company. Leave out your current employer.
 
@@ -8,8 +10,8 @@ queries: [machine learning, applied scientist, research scientist, AI engineer, 
 
 companies:
   # ---------------- big tech
-  - {name: Google, tier: big_tech, ats: web, careers_url: "https://www.google.com/about/careers/applications/jobs/results"}
-  - {name: Meta, tier: big_tech, ats: web, careers_url: "https://www.metacareers.com/jobs"}
+  - {name: Google, tier: big_tech, ats: google, max_pages: 15, locations: ["New York, NY, USA", "California, USA", "Washington, USA"]}
+  - {name: Meta, tier: big_tech, ats: meta}
   - {name: Apple, tier: big_tech, ats: web, careers_url: "https://jobs.apple.com"}
   - name: Microsoft
     tier: big_tech

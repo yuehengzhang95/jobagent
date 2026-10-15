@@ -1,0 +1,62 @@
+{% extends "base.html" %}
+{% block title %}Companies · Job Agent{% endblock %}
+{% block head %}
+<style>
+.toolbar { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin-bottom: 14px; }
+table { width: 100%; border-collapse: collapse; background: var(--panel); border: 1px solid var(--line); border-radius: 10px; overflow: hidden; }
+th, td { text-align: left; padding: 8px 10px; border-bottom: 1px solid var(--line); vertical-align: middle; }
+th { font-size: 12px; color: var(--muted); font-weight: 500; }
+tr:last-child td { border-bottom: none; }
+tr.off td { opacity: .5; }
+td.n { font-variant-numeric: tabular-nums; text-align: right; }
+td.act { white-space: nowrap; text-align: right; }
+td.act form { display: inline; }
+.wrap { overflow-x: auto; }
+.banner { padding: 10px 14px; border-radius: 8px; margin-bottom: 14px; border: 1px solid var(--line); background: var(--panel); }
+</style>
+{% endblock %}
+{% block body %}
+{% if applied %}<div class="banner">Watchlist updated. Run the scout on the Jobs page to search the new list.</div>{% endif %}
+{% if msg %}<div class="banner">{{ msg }}</div>{% endif %}
+
+<div class="toolbar">
+  <h2 style="margin:0">Companies <span class="chip">{{ rows | length }}</span></h2>
+  <a class="btn" href="/setup" style="margin-left:auto">Change preferences &amp; get suggestions</a>
+</div>
+
+<form method="post" action="/companies/add" class="panel toolbar">
+  <b>Add a company</b>
+  <input type="text" name="name" placeholder="Company name" required>
+  <input type="text" name="url" placeholder="Careers page URL (optional)" style="min-width:260px">
+  <input type="text" name="tier" placeholder="Group (e.g. fintech)" list="tiers" style="width:150px">
+  <datalist id="tiers">{% for t in tiers %}<option value="{{ t }}">{% endfor %}</datalist>
+  <button class="btn primary">Find job board &amp; add</button>
+</form>
+
+<div class="wrap">
+<table>
+  <thead><tr><th>Company</th><th>Group</th><th>Job board</th><th class="n">Jobs seen</th><th class="n">Relevant</th>
+    <th class="n">Best fit</th><th class="n">Applied</th><th></th></tr></thead>
+  <tbody>
+  {% for c in rows %}
+  {% set s = c.stats %}
+  <tr class="{{ '' if c.get('enabled', True) else 'off' }}">
+    <td><a href="/?tab=all&q={{ c.name | urlencode }}">{{ c.name }}</a></td>
+    <td><span class="chip">{{ (c.tier or '').replace('_', ' ') }}</span></td>
+    <td class="muted">{{ c.ats }}{% if c.slug %} · {{ c.slug }}{% endif %}{% if c.ats == 'web' %} (web search){% endif %}</td>
+    <td class="n">{{ s.total or 0 }}</td>
+    <td class="n">{{ s.relevant or 0 }}</td>
+    <td class="n">{{ s.best if s.best is not none else '–' }}</td>
+    <td class="n">{{ s.applied or 0 }}</td>
+    <td class="act">
+      <form method="post" action="/companies/toggle"><input type="hidden" name="name" value="{{ c.name }}">
+        <button class="btn small">{{ 'Pause' if c.get('enabled', True) else 'Resume' }}</button></form>
+      <form method="post" action="/companies/remove" onsubmit="return confirm('Remove {{ c.name }} from the list?')">
+        <input type="hidden" name="name" value="{{ c.name }}"><button class="btn small">Remove</button></form>
+    </td>
+  </tr>
+  {% endfor %}
+  </tbody>
+</table>
+</div>
+{% endblock %}

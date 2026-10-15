@@ -17,7 +17,8 @@ boards         filter        0–100         + accuracy check  form, you approve
 | Agent | What it does |
 |---|---|
 | **Librarian** | Turns your resume and project notes (`artifacts/`) into a *claims bank*: the only facts the other agents may use. |
-| **Scout** | Pulls postings from Greenhouse, Lever, Ashby, Workday and Eightfold boards (free public APIs); uses Claude web search for sites without one. Filters by title, level and location. |
+| **Curator** | Asks what you want (roles, places, kinds of companies) and proposes companies to add or drop. It finds each company's job board automatically. |
+| **Scout** | Pulls postings from Greenhouse, Lever, Ashby, Workday and Eightfold boards plus Google and Meta careers (free); uses Claude web search for sites without a public board. Filters by title, level and location. |
 | **Triage / Matcher** | Rates titles cheaply, then reads promising postings in full and scores fit, gaps and red flags. |
 | **Tailor + Verifier** | Rewrites summary, bullets and skills for one posting. A second model checks every claim against the claims bank; code checks numbers, skills, page length and short last lines. Failing drafts are sent back, up to 3 rounds. |
 | **Submitter** | Reads the application form (Greenhouse via its API; any other site by letting Claude read the page), fills answers from your config, checks the result, waits for your approval, submits, and can fetch the emailed security code from Gmail. |
@@ -54,7 +55,7 @@ conda env create -p ./.env -f environment.yml
 ```
 
 `init` copies a fictional example (Alex Chen) into `artifacts/` and `config/`. Replace it with
-your own material:
+your own material (steps 1–4). The company list (step 5) is easiest to set up in the web UI.
 
 ### 1. Your resume: `artifacts/main.tex`
 
@@ -97,9 +98,11 @@ you type in the UI with "remember" ticked are saved to `config/learned_answers.y
 
 ### 5. Companies: `config/watchlist.yaml`
 
-About 70 big-tech companies, AI labs and startups are included. Add or remove entries; leave
-out your current employer. Board slugs are the part after `boards.greenhouse.io/`,
-`jobs.lever.co/` or `jobs.ashbyhq.com/`.
+The starting list has about 70 big-tech companies, AI labs and AI startups for ML/AI roles.
+The first time you click **Run scout**, the web UI asks about the roles, places and kinds of
+companies you want, and proposes a list that fits (see below). You can also edit the file by
+hand: board slugs are the part after `boards.greenhouse.io/`, `jobs.lever.co/` or
+`jobs.ashbyhq.com/`.
 
 ### 6. Build the claims bank, then start the UI
 
@@ -110,7 +113,20 @@ out your current employer. Board slugs are the part after `boards.greenhouse.io/
 
 ## Using it
 
-1. **Run scout** on the board. Tick "include Google / Meta / Apple" to search sites without a
+**Preferences** (asked before your first search; change them any time from the top bar):
+answer a short questionnaire covering roles, levels, locations, kinds of companies, stage,
+domains, and companies to include or exclude. Claude proposes companies to add and drop.
+The agent finds each company's job board: it tries the public Greenhouse / Ashby / Lever APIs,
+then reads the careers page (rendered, if needed). It shows how many jobs each board lists.
+Tick what you want and click **Apply to watchlist**. Comments in the file are kept.
+
+**Companies**: every company on the list with its job board, jobs seen, relevant jobs, best
+fit and applications. Pause or remove companies, or add one by name (and optionally its
+careers URL); its job board is found automatically.
+
+**Jobs**:
+
+1. **Run scout** on the board. Tick "include companies without a public job board" to search sites without a
    public API (extra cost). New jobs are triaged and the best ones scored.
 2. Open a job: see why it fits, its gaps and red flags. Click **Tailor resume**. After 1–3
    minutes you get the PDF, the change log, any warnings, and a diff against your base resume.
@@ -154,19 +170,22 @@ python -m jobagent serve [--port 8765]       # web UI
 | Tailored resume | ~$0.5–1.1 per job |
 | Prepare application | ~$0.03 (Greenhouse), ~$0.10 (other sites) |
 | Fill + check (non-Greenhouse) | ~$0.15 |
-| Web-search scout (Google/Meta/Apple) | ~$0.30 per run |
+| Company suggestions (Preferences) | ~$0.15–0.30 |
+| Web-search scout (companies without a public board) | ~$0.10 per company per run |
 
 ## What stays private
 
 `.gitignore` excludes `artifacts/`, `config/profile.yaml`, `config/answers.yaml`,
-`config/learned_answers.yaml`, `data/` (claims bank, job database) and `runs/` (tailored
-resumes, screenshots). Check `git status` before you commit.
+`config/watchlist.yaml`, `config/search_prefs.yaml`, `config/learned_answers.yaml`, `data/`
+(claims bank, job database) and `runs/` (tailored resumes, screenshots). Defaults live in
+`examples/`. Check `git status` before you commit.
 
 ## Limitations
 
 - The resume parser expects the macros above. Other LaTeX templates need `jobagent/resume.py` changes.
 - Workday, LinkedIn Easy Apply and sites behind a login are not automated.
-- Web-search scouting is incomplete; big-tech sites often return few results.
+- Web-search scouting is incomplete. Companies on Workable, SmartRecruiters or their own
+  sites (e.g. Hugging Face, Two Sigma) fall back to it.
 - Forms change. If a fill looks wrong, fix it in the browser window before submitting.
 - You are responsible for what you submit. Read every answer and the resume first.
 

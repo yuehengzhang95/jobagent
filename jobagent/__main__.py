@@ -44,7 +44,7 @@ def main() -> None:
     t.add_argument("--jd", required=True)
     t.add_argument("--out")
     s = sub.add_parser("scout")
-    s.add_argument("--web", action="store_true", help="also search Google/Meta/Apple via web search")
+    s.add_argument("--web", action="store_true", help="also search companies without a public API (Apple) via web search")
     s.add_argument("--score", type=int, default=None)
     sc = sub.add_parser("score")
     sc.add_argument("--limit", type=int, default=30)
@@ -56,7 +56,8 @@ def main() -> None:
         import shutil
         from . import paths
         pairs = [(paths.EXAMPLES / "artifacts", paths.ARTIFACTS)] + [
-            (paths.EXAMPLES / "config" / f"{n}.example.yaml", paths.CONFIG / f"{n}.yaml") for n in ("profile", "answers")]
+            (paths.EXAMPLES / "config" / f"{n}.example.yaml", paths.CONFIG / f"{n}.yaml") for n in ("profile", "answers", "watchlist")]
+        paths.CONFIG.mkdir(exist_ok=True)
         for src, dst in pairs:
             if dst.exists():
                 print(f"keep   {dst.relative_to(paths.ROOT)} (already exists)")

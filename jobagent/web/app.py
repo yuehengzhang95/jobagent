@@ -18,8 +18,8 @@ from fastapi.responses import HTMLResponse, JSONResponse, RedirectResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 
-from .. import apply_session, config, db, paths, pipeline, sources
-from ..agents import matcher, scout, submitter
+from .. import apply_session, config, db, paths, pipeline, sources, watchlist
+from ..agents import curator, matcher, scout, submitter
 
 app = FastAPI(title="Job agent")
 paths.RUNS.mkdir(parents=True, exist_ok=True)
@@ -147,7 +147,9 @@ def board(request: Request, tab: str = "review", q: str = "", min_fit: int = 0, 
     unscored = len(db.query("status = 'discovered' AND triage >= 2", limit=100000))
     return templates.TemplateResponse(request, "board.html", {
         "rows": rows, "tab": tab, "tabs": TABS, "counts": counts, "q": q, "min_fit": min_fit,
-        "tier": tier, "unscored": unscored, "score_n": config.profile()["scout"].get("score_per_run", 60)})
+        "tier": tier, "unscored": unscored, "score_n": config.profile()["scout"].get("score_per_run", 60),
+        "tiers": sorted({c.get("tier", "") for c in watchlist.companies()} - {""}),
+        "needs_setup": curator.load_prefs() is None})
 
 
 @app.get("/job/{job_id:path}", response_class=HTMLResponse)
@@ -241,8 +243,120 @@ async def apply(job_id: str, cmd: str, request: Request):
     return RedirectResponse(f"/job/{job_id}#application", status_code=303)
 
 
+# ---------------------------------------------------------------- preferences + companies
+
+SETUP_CHOICES = {
+    "seniority": ["Entry / new grad", "Mid-level", "Senior", "Staff and above", "Manager"],
+    "locations": ["New York City", "San Francisco Bay Area", "Seattle area", "Los Angeles", "Boston",
+                  "Austin", "Chicago", "Washington DC", "Remote (US)"],
+    "company_types": ["Big tech", "AI labs", "AI-native startups", "Fintech", "Healthcare / biotech",
+                      "Enterprise SaaS", "Consumer apps", "Developer tools / infra", "Hardware / robotics",
+                      "Quant / trading", "E-commerce / marketplaces", "Media / entertainment"],
+    "stages": ["Early (seed – Series A)", "Growth (Series B – D)", "Late / pre-IPO", "Public"],
+    "list_size": ["30", "60", "100"],
+}
+
+
+def _setup_defaults() -> dict:
+    p = config.profile()
+    return {"roles": ", ".join(p.get("target_roles", [])), "seniority": ["Mid-level", "Senior"],
+            "locations": [], "other_locations": "", "company_types": [], "other_types": "", "stages": [],
+            "industries": "", "include": "", "exclude": "", "list_size": "60", "notes": ""}
+
+
+@app.get("/setup", response_class=HTMLResponse)
+def setup(request: Request, first: int = 0):
+    prefs = curator.load_prefs() or {}
+    values = {**_setup_defaults(), **{k: v for k, v in prefs.items() if k not in ("saved", "skipped")}}
+    return templates.TemplateResponse(request, "setup.html", {
+        "v": values, "choices": SETUP_CHOICES, "first": first or not prefs, "has_list": bool(watchlist.companies())})
+
+
+def _propose_task(prefs: dict, log):
+    curator.propose(prefs, log=log)
+    log("done")
+
+
+@app.post("/setup")
+async def setup_save(request: Request):
+    form = await request.form()
+    prefs = {k: (form.getlist(k) if k in ("seniority", "locations", "company_types", "stages") else str(form.get(k, "")).strip())
+             for k in ("roles", "seniority", "locations", "other_locations", "company_types", "other_types", "stages",
+                       "industries", "include", "exclude", "list_size", "notes")}
+    curator.save_prefs(prefs)
+    curator.PROPOSAL_JSON.unlink(missing_ok=True)
+    _start("curate", "Suggest companies", _propose_task, prefs)
+    return RedirectResponse("/setup/review", status_code=303)
+
+
+@app.post("/setup/skip")
+def setup_skip():
+    curator.save_prefs({**_setup_defaults(), "skipped": True})
+    return RedirectResponse("/", status_code=303)
+
+
+@app.get("/setup/review", response_class=HTMLResponse)
+def setup_review(request: Request):
+    proposal = json.loads(curator.PROPOSAL_JSON.read_text()) if curator.PROPOSAL_JSON.exists() else None
+    return templates.TemplateResponse(request, "setup_review.html", {"p": proposal})
+
+
+@app.post("/setup/apply")
+async def setup_apply(request: Request):
+    form = await request.form()
+    proposal = json.loads(curator.PROPOSAL_JSON.read_text())
+    curator.apply(proposal, form.getlist("add"), form.getlist("remove"), bool(form.get("update_filters")))
+    curator.PROPOSAL_JSON.unlink(missing_ok=True)
+    return RedirectResponse("/companies?applied=1", status_code=303)
+
+
+@app.get("/companies", response_class=HTMLResponse)
+def companies(request: Request, applied: int = 0, msg: str = ""):
+    stats = {}
+    for r in db.query("1=1", limit=1000000):
+        s = stats.setdefault(r["company"].lower(), {"total": 0, "relevant": 0, "best": None, "applied": 0})
+        s["total"] += 1
+        s["relevant"] += r["status"] != "filtered"
+        s["applied"] += r["status"] == "applied"
+        if r["fit_score"] is not None:
+            s["best"] = max(s["best"] or 0, r["fit_score"])
+    rows = [{**c, "stats": stats.get(c["name"].lower(), {})} for c in watchlist.companies()]
+    tiers = sorted({c.get("tier", "") for c in rows})
+    return templates.TemplateResponse(request, "companies.html", {
+        "rows": rows, "tiers": tiers, "applied": applied, "msg": msg})
+
+
+@app.post("/companies/add")
+def companies_add(name: str = Form(...), url: str = Form(""), tier: str = Form("other")):
+    name = name.strip()
+    if watchlist.find(name):
+        return RedirectResponse(f"/companies?msg={name} is already on the list", status_code=303)
+    d = curator.detect(name, url.strip())
+    curator.confirm([d])
+    entry = d["entry"] or {"name": name, "ats": "web", "careers_url": url.strip()}
+    watchlist.add({"name": name, "tier": tier.strip() or "other", **{k: v for k, v in entry.items() if k != "name"}})
+    jobs = f", {d['jobs']} jobs listed" if d.get("jobs") is not None else ""
+    return RedirectResponse(f"/companies?msg=Added {name}: {d['how']}{jobs}", status_code=303)
+
+
+@app.post("/companies/toggle")
+def companies_toggle(name: str = Form(...)):
+    c = watchlist.find(name)
+    if c:
+        watchlist.set_enabled(name, not c.get("enabled", True))
+    return RedirectResponse("/companies", status_code=303)
+
+
+@app.post("/companies/remove")
+def companies_remove(name: str = Form(...)):
+    watchlist.remove(name)
+    return RedirectResponse("/companies", status_code=303)
+
+
 @app.post("/scout")
 def run_scout(include_web: Optional[str] = Form(None), score_n: int = Form(60)):
+    if curator.load_prefs() is None:
+        return RedirectResponse("/setup?first=1", status_code=303)
     _start("scout", "Scout + triage + score", _scout_task, bool(include_web), score_n)
     return RedirectResponse("/", status_code=303)
 

@@ -9,4 +9,5 @@ pydantic==2.14.1
 pypdf==6.20.1
 python-multipart==0.0.32
 PyYAML==6.0.3
+ruamel.yaml==0.19.1
 uvicorn==0.54.0

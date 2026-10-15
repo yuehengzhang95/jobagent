@@ -195,9 +195,70 @@ def web(c: dict, queries: List[str], targets: Optional[dict] = None) -> List[Pos
             for j in found.jobs]
 
 
+_UA = {"User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 "
+                     "(KHTML, like Gecko) Chrome/141.0 Safari/537.36"}
+
+
+def google(c: dict, queries: List[str]) -> List[Posting]:
+    """Google Careers: the results page embeds the full job records (AF_initDataCallback 'ds:1')."""
+    import json
+    seen: Dict[str, Posting] = {}
+    locs = "".join(f"&location={quote(l)}" for l in c.get("locations", []))
+    for q in queries:
+        for page in range(1, c.get("max_pages", 10) + 1):
+            url = f"https://www.google.com/about/careers/applications/jobs/results?q={quote(chr(34) + q + chr(34))}{locs}&page={page}"
+            t = httpx.get(url, headers=_UA, follow_redirects=True, timeout=30).text
+            m = re.search(r"AF_initDataCallback\(\{key: 'ds:1'.*?data:(.*?), sideChannel", t, re.S)
+            if not m:
+                break
+            data = json.loads(m.group(1))
+            rows = data[0] or []
+            for j in rows:
+                jid, title = j[0], j[1]
+                desc = "\n\n".join(html_to_text((j[i] or [None, ""])[1]) for i in (10, 3, 4) if j[i])
+                slug = re.sub(r"[^a-z0-9]+", "-", title.lower()).strip("-")
+                seen[jid] = Posting(source="google", company=c["name"], ext_id=jid, title=title,
+                                    location="; ".join(l[0] for l in (j[9] or [])),
+                                    url=f"https://www.google.com/about/careers/applications/jobs/results/{jid}-{slug}",
+                                    posted_at=_iso(j[12][0]) if j[12] else "", description=desc)
+            total = data[2] if len(data) > 2 and isinstance(data[2], int) else 0
+            if not rows or page * len(rows) >= total:
+                break
+            time.sleep(1)
+    return list(seen.values())
+
+
+def meta(c: dict, queries: List[str]) -> List[Posting]:
+    """Meta Careers: render the search page and capture its GraphQL job list (no public API)."""
+    from playwright.sync_api import sync_playwright
+    seen: Dict[str, Posting] = {}
+    with sync_playwright() as pw:
+        browser = pw.chromium.launch()
+        page = browser.new_page()
+        found: List[dict] = []
+
+        def on_response(r):
+            if "graphql" in r.url:
+                try:
+                    found.extend(r.json()["data"]["job_search_with_featured_jobs_v2"].get("all_jobs") or [])
+                except Exception:
+                    pass
+        page.on("response", on_response)
+        for q in queries:
+            page.goto(f"https://www.metacareers.com/jobs/?q={quote(q)}", wait_until="networkidle")
+            page.wait_for_timeout(2000)
+        browser.close()
+    for j in found:
+        seen[j["id"]] = Posting(source="meta", company=c["name"], ext_id=j["id"],
+                                title=re.sub(r"\s+", " ", j["title"]).strip(),
+                                location="; ".join(j.get("locations") or []),
+                                url=f"https://www.metacareers.com/jobs/{j['id']}/", detail_ref="meta")
+    return list(seen.values())
+
+
 ADAPTERS: Dict[str, Callable] = {
     "greenhouse": greenhouse, "lever": lever, "ashby": ashby,
-    "eightfold": eightfold, "workday": workday, "web": web,
+    "eightfold": eightfold, "workday": workday, "web": web, "google": google, "meta": meta,
 }
 
 
@@ -223,6 +284,17 @@ def fetch_description(p: Posting) -> Posting:
         p.description = html_to_text(d.get("jobDescription", ""))
         p.location = "; ".join([d.get("location", "")] + d.get("additionalLocations", []))
         p.posted_at = d.get("startDate", p.posted_at)
+    elif p.source == "meta":
+        from playwright.sync_api import sync_playwright
+        with sync_playwright() as pw:
+            browser = pw.chromium.launch()
+            page = browser.new_page()
+            page.goto(p.url, wait_until="networkidle")
+            page.wait_for_timeout(1500)
+            text = page.inner_text("main") if page.locator("main").count() else page.inner_text("body")
+            browser.close()
+        p.description = text.split("Apply now", 1)[-1].strip()[:20000]
+        p.detail_ref = "meta:fetched"
     elif p.source == "web" and p.detail_ref == "web":
         jd = llm.structured("Fetch the job posting URL and return its full description text verbatim "
                             "(responsibilities, qualifications, compensation). No commentary.",

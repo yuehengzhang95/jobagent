@@ -3,6 +3,8 @@
 /config/profile.yaml
 /config/answers.yaml
 /config/learned_answers.yaml
+/config/search_prefs.yaml
+/config/watchlist.yaml
 /data/
 /runs/
 

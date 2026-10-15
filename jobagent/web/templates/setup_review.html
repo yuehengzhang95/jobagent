@@ -1,0 +1,68 @@
+{% extends "base.html" %}
+{% block title %}Review company list · Job Agent{% endblock %}
+{% block head %}
+<style>
+.wrap { max-width: 1000px; }
+table { width: 100%; border-collapse: collapse; }
+th, td { text-align: left; padding: 8px 6px; border-top: 1px solid var(--line); vertical-align: top; }
+th { font-size: 12px; color: var(--muted); font-weight: 500; border-top: none; }
+td.c { width: 28px; }
+.sample { font-size: 12px; color: var(--muted); }
+.warn { color: var(--ok); }
+h3 { margin: 20px 0 6px; }
+</style>
+{% endblock %}
+{% block body %}
+<div class="wrap">
+{% if not p %}
+  <h2 style="margin-top:0">Finding companies…</h2>
+  <p class="muted">Claude is suggesting companies and the agent is checking each one's job board. This page
+    refreshes when it's done (about a minute).</p>
+{% else %}
+  <h2 style="margin-top:0">Review the company list</h2>
+  <p>{{ p.summary }}</p>
+  <form method="post" action="/setup/apply" class="panel">
+    <h3 style="margin-top:0">Add ({{ p.add | length }})</h3>
+    <p class="muted" style="margin-top:0">Ticked rows have a verified job board. Unticked ones would use web search
+      (slower, ~$0.10 each per scout); tick them if you still want them.</p>
+    <table>
+      <tr><th></th><th>Company</th><th>Group</th><th>Job board</th><th>Why</th></tr>
+      {% for r in p.add %}
+      <tr>
+        <td class="c"><input type="checkbox" name="add" value="{{ r.entry.name }}" {{ 'checked' if r.verified else '' }}></td>
+        <td><b>{{ r.entry.name }}</b></td>
+        <td><span class="chip">{{ r.entry.tier.replace('_', ' ') }}</span></td>
+        <td>{% if r.verified %}{{ r.entry.ats }}{% if r.jobs is not none %} · {{ r.jobs }} jobs{% endif %}
+              {% if r.sample %}<div class="sample">{{ r.sample | join(' · ') }}</div>{% endif %}
+            {% else %}<span class="warn">{{ r.how }}</span>{% endif %}</td>
+        <td class="muted">{{ r.reason }}</td>
+      </tr>
+      {% endfor %}
+    </table>
+
+    {% if p.remove %}
+    <h3>Remove ({{ p.remove | length }})</h3>
+    <table>
+      {% for r in p.remove %}
+      <tr><td class="c"><input type="checkbox" name="remove" value="{{ r.name }}" checked></td>
+          <td><b>{{ r.name }}</b></td><td class="muted">{{ r.reason }}</td></tr>
+      {% endfor %}
+    </table>
+    {% endif %}
+
+    <h3>Search filters</h3>
+    <label><input type="checkbox" name="update_filters" checked> Also update the role list and location filter in
+      config/profile.yaml</label>
+    <div class="sample" style="margin-top:6px">Roles: {{ p.target_roles | join(', ') }}<br>
+      Locations: {{ p.location_terms | join(', ') }}</div>
+
+    <div style="margin-top:16px;display:flex;gap:10px">
+      <button class="btn primary">Apply to watchlist</button>
+      <a class="btn" href="/setup">Change answers</a>
+    </div>
+  </form>
+{% endif %}
+</div>
+{% endblock %}
+{% block scripts %}{% if not p %}<script>window.onTasksIdle = () => location.reload();
+setInterval(() => fetch('/setup/review').then(r => r.text()).then(t => { if (!t.includes('Finding companies')) location.reload(); }), 5000);</script>{% endif %}{% endblock %}
